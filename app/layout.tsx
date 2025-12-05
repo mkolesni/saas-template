@@ -1,5 +1,3 @@
-"use client"; // ← THIS LINE FIXES THE PRERENDER ERROR
-
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -17,6 +15,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Metadata must be in a **server component**, so we export it here
 export const metadata: Metadata = {
   title: "ListingToVideo.ai",
   description: "Turn any Zillow link into a viral listing Reel in 58 seconds",
