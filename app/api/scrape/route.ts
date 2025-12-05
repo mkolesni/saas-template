@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
 
-    // 1. Scrape with Firecrawl
     const scrapeRes = await fetch('https://api.firecrawl.dev/v0/scrape', {
       method: 'POST',
       headers: {
@@ -21,7 +20,6 @@ export async function POST(request: NextRequest) {
     const description = scraped.data.content || scraped.data.description || 'Stunning home';
     const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
-    // 2. Voiceover with ElevenLabs
     const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
       method: 'POST',
       headers: {
@@ -37,7 +35,6 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — CORRECT ENDPOINT DECEMBER 2025
     const runwayRes = await fetch('https://api.runwayml.com/v1/tasks', {
       method: 'POST',
       headers: {
@@ -59,12 +56,11 @@ export async function POST(request: NextRequest) {
 
     const task = await runwayRes.json();
 
-    // Poll for completion (max 2 minutes)
     let videoUrl = 'https://example.com/fallback.mp4';
     if (task.id) {
       const pollUrl = `https://api.runwayml.com/v1/tasks/${task.id}`;
       for (let i = 0; i < 20; i++) {
-        await new Promise(r => setTimeout(r, 6000)); // wait 6s
+        await new Promise(r => setTimeout(r, 6000));
         const poll = await fetch(pollUrl, {
           headers: { 'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}` },
         });
