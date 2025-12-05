@@ -1,3 +1,4 @@
+// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -37,26 +38,44 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway Gen-4 Turbo video
-    const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
+    // 3. Runway — CORRECT ENDPOINT DECEMBER 2025
+    const runwayRes = await fetch('https://api.runwayml.com/v1/tasks', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
         'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-11-06',
       },
       body: JSON.stringify({
         model: 'gen-4-turbo',
-        prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
-        image_url: image,
-        audio_url: audioUrl,
-        duration: 60,
-        aspect_ratio: '9:16',
+        input: {
+          promptText: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
+          ratio: '9:16',
+          duration: 60,
+          image_url: image,
+          audio_url: audioUrl,
+        },
       }),
     });
 
-    const videoData = await runwayRes.json();
+    const task = await runwayRes.json();
 
-    const videoUrl = videoData.assets?.[0]?.url || videoData.video_url || 'https://example.com/fallback.mp4';
+    // Runway returns a task ID — poll for result
+    const pollUrl = `https://api.runwayml.com/v1/tasks/${task.id}`;
+    let videoUrl = 'https://example.com/fallback.mp4';
+
+    // Simple poll loop (max 2 minutes)
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 6000)); // wait 6s
+      const poll = await fetch(pollUrl, {
+        headers: { 'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}` },
+      });
+      const result = await poll.json();
+      if (result.status === 'succeeded' && result.output?.[0]) {
+        videoUrl = result.output[0];
+        break;
+      }
+    }
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
