@@ -1,3 +1,4 @@
+// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'gen-4-turbo',
         input: {
-          promptText: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
+          promptText: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays with price and features, professional voiceover.`,
           ratio: '9:16',
           duration: 60,
           image_url: image,
@@ -59,12 +60,12 @@ export async function POST(request: NextRequest) {
 
     const task = await runwayRes.json();
 
-    // Poll for result (simple version — max 2 minutes)
+    // Poll for completion (max 2 minutes)
     let videoUrl = 'https://example.com/fallback.mp4';
     if (task.id) {
       const pollUrl = `https://api.runwayml.com/v1/tasks/${task.id}`;
       for (let i = 0; i < 20; i++) {
-        await new Promise(r => setTimeout(r, 6000)); // wait 6 seconds
+        await new Promise(r => setTimeout(r, 6000)); // wait 6s
         const poll = await fetch(pollUrl, {
           headers: { 'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}` },
         });
