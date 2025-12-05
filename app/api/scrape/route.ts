@@ -37,15 +37,15 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — CORRECT MODEL NAME DECEMBER 2025
-    const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
+    // 3. Runway — CORRECT ENDPOINT DECEMBER 2025 
+    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gen4_turbo',  // ← THIS IS THE CORRECT NAME NOW
+        model: 'gen-4-turbo',
         prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
         image_url: image,
         audio_url: audioUrl,
@@ -56,10 +56,11 @@ export async function POST(request: NextRequest) {
 
     const videoData = await runwayRes.json();
 
-    const videoUrl = videoData.assets?.[0]?.url || 'https://example.com/fallback.mp4';
+    const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
+    console.error('Full error:', error.message, error.stack); // Improved logging
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
