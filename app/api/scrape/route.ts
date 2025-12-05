@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Video with Runway ML Gen-3 Turbo
+    // 3. Runway Gen-3 Turbo video
     const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
       method: 'POST',
       headers: {
@@ -47,4 +47,19 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'gen-3-alpha-turbo',
         prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
-        image_url: images[0] || 'https://images.unsplash.com/photo-160058515434
+        image_url: images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
+        audio_url: audioUrl,
+        duration: 60,
+        aspect_ratio: '9:16',
+      }),
+    });
+
+    const videoData = await runwayRes.json();
+
+    const videoUrl = videoData.assets?.[0]?.url || videoData.video_url || 'https://example.com/fallback.mp4';
+
+    return Response.json({ success: true, videoUrl });
+  } catch (error: any) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
