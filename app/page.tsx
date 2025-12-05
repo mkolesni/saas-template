@@ -7,8 +7,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!url.trim()) return;
+
     setLoading(true);
     setVideoUrl('');
 
@@ -20,12 +22,12 @@ export default function Home() {
       });
 
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.error || 'Failed');
 
-      // This line gets the final video URL from your API
       setVideoUrl(data.videoUrl);
-    } catch (err) {
-      alert('Error: ' + (err as any).message);
+    } catch (err: any) {
+      alert('Error: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -42,15 +44,15 @@ export default function Home() {
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://www.zillow.com/homedetails/..."
+          placeholder="https://www.zillow.com/..."
           className="w-full p-6 text-xl bg-gray-900 rounded-xl border border-gray-700"
           required
-          disabled={loading}
         />
+
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-amber-400 hover:bg-amber-500 text-black text-3xl font-bold py-8 rounded-xl"
+          className="w-full bg-amber-400 hover:bg-amber-500 text-black text-3xl font-bold py-8 rounded-xl disabled:opacity-60"
         >
           {loading ? 'Generating… (30–60s)' : 'Generate Video'}
         </button>
