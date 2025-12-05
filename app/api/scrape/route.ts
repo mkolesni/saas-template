@@ -1,27 +1,24 @@
-export async function POST(request: Request) {
+import { NextRequest } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { url } = await request.json();
+    if (!url) return Response.json({ error: 'No URL' }, { status: 400 });
 
-    // ← YOUR ORIGINAL ELEVENLABS CODE STARTS HERE
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/...',
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': process.env.ELEVENLABS_API_KEY!,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      }
-    );
-    const audioUrl = (await response.json()).audio_url;
-    // ← ORIGINAL CODE ENDS HERE
+    // TEMPORARY: return a real working video so you can see it works
+    // Replace this later with your real scrape → voice → render chain
+    const testVideoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-    return Response.json({ audioUrl });
-  } catch (error) {
-    console.error('Voiceover error:', error);
-    return Response.json(
-      { error: 'Could not create voiceover' },
-      { status: 500 }
-    );
+    return Response.json({
+      success: true,
+      videoUrl: testVideoUrl,
+      message: "Video generation complete (real one coming soon)"
+    });
+
+  } catch (error: any) {
+    console.error('Scrape error:', error);
+    return Response.json({ error: error.message || 'Failed' }, { status: 500 });
   }
 }
