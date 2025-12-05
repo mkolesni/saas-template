@@ -20,11 +20,10 @@ export const metadata: Metadata = {
   description: "Turn any Zillow link into a viral listing Reel in 58 seconds",
 };
 
-// Dynamic + ssr:false = completely skips Clerk during build/prerender
-const ClerkProvider = dynamic(
-  () => import("@clerk/nextjs").then((mod) => ({ default: mod.ClerkProvider })),
-  { ssr: false }
-);
+// Dynamic import of the Client Wrapper with ssr: false
+const ClerkWrapper = dynamic(() => import('@/components/ClerkWrapper'), {
+  ssr: false, // Now allowed because it's wrapping a Client Component
+});
 
 export default function RootLayout({
   children,
@@ -32,15 +31,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider publishableKey={process.env.CLERK_PUBLISHABLE_KEY}>
-      <html lang="en">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
-        >
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
+        <ClerkWrapper>
           <Navbar />
           {children}
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkWrapper>
+      </body>
+    </html>
   );
 }
