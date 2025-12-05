@@ -50,16 +50,4 @@ export async function POST(request: NextRequest) {
         image_url: image,
         audio_url: audioUrl,
         duration: 60,
-        aspect_ratio: '9:16',
-      }),
-    });
-
-    const videoData = await runwayRes.json();
-
-    const videoUrl = videoData.assets?.[0]?.url || videoData.video_url || 'https://example.com/fallback.mp4';
-
-    return Response.json({ success: true, videoUrl });
-  } catch (error: any) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-}
+        aspect
