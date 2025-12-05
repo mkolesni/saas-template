@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
+import dynamic from "next/dynamic";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import Navbar from "@/components/Navbar";
@@ -15,11 +15,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Metadata must be in a **server component**, so we export it here
 export const metadata: Metadata = {
   title: "ListingToVideo.ai",
   description: "Turn any Zillow link into a viral listing Reel in 58 seconds",
 };
+
+// Dynamically import ClerkProvider so it NEVER runs during build/prerender
+const ClerkProvider = dynamic(() => import("@clerk/nextjs").then(mod => ({ default: mod.ClerkProvider })), {
+  ssr: false, // ← this disables it completely during static generation
+});
 
 export default function RootLayout({
   children,
@@ -29,9 +33,7 @@ export default function RootLayout({
   return (
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
-        >
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
           <Navbar />
           {children}
         </body>
