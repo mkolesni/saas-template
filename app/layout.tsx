@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
+import dynamic from "next/dynamic";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import Navbar from "@/components/Navbar";
@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   description: "Turn any Zillow link into a viral listing Reel in 58 seconds",
 };
 
+// Dynamic + ssr:false = completely skips Clerk during build/prerender
+const ClerkProvider = dynamic(
+  () => import("@clerk/nextjs").then((mod) => ({ default: mod.ClerkProvider })),
+  { ssr: false }
+);
+
 export default function RootLayout({
   children,
 }: {
@@ -28,7 +34,9 @@ export default function RootLayout({
   return (
     <ClerkProvider publishableKey={process.env.CLERK_PUBLISHABLE_KEY}>
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
+        >
           <Navbar />
           {children}
         </body>
