@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — CORRECT ENDPOINT + MODEL DECEMBER 2025
+    // 3. Runway — CORRECT MODEL NAME DECEMBER 2025
     const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
       method: 'POST',
       headers: {
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gen4_turbo',
+        model: 'gen-4-turbo',  // ← THIS IS THE CORRECT NAME NOW
         prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
         image_url: image,
         audio_url: audioUrl,
