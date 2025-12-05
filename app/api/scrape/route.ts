@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Video with Runway — THIS LINE FIXES IT
-    const runwayRes = await fetch('https://api.runwayml.com/v1/tasks', {
+    // 3. Video with Runway — THIS IS THE CORRECT ENDPOINT (December 2025)
+    const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
@@ -46,18 +46,17 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: 'gen-3-alpha-turbo',
-        input: {
-          prompt: `Luxury real estate tour: ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
-          image_url: images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
-          audio_url: audioUrl,
-          duration_in_seconds: 60,
-          aspect_ratio: '9:16',
-        },
+        prompt: `Luxury real estate tour: ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
+        image_url: images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
+        audio_url: audioUrl,
+        duration: 60,
+        aspect_ratio: '9:16',
       }),
     });
 
-    const task = await runwayRes.json();
-    const videoUrl = task.output?.[0] || 'https://example.com/fallback.mp4';
+    const videoData = await runwayRes.json();
+
+    const videoUrl = videoData.assets?.[0]?.url || videoData.video_url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
