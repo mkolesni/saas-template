@@ -8,7 +8,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
 
@@ -24,7 +24,8 @@ export default function Home() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
+
+      if (!res.ok) throw new Error(data.error || 'API error');
 
       setVideoUrl(data.videoUrl || '');
     } catch (err: any) {
@@ -46,7 +47,7 @@ export default function Home() {
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste Zillow / Realtor.com link here..."
+          placeholder="https://www.zillow.com/homedetails/..."
           className="w-full px-8 py-6 text-xl bg-gray-900 border border-gray-700 rounded-2xl focus:outline-none focus:border-amber-400"
           required
           disabled={loading}
@@ -61,7 +62,7 @@ export default function Home() {
         </button>
       </form>
 
-      {error && <p className="mt-10 text-red-400 text-xl">{error}</p>}
+      {error && <p className="mt-12 text-red-400 text-2xl">{error}</p>}
 
       {videoUrl && (
         <div className="mt-16 max-w-2xl">
