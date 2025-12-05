@@ -1,4 +1,3 @@
-// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — CORRECT ENDPOINT DECEMBER 2025
+    // 3. Runway — correct endpoint December 2025
     const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
       method: 'POST',
       headers: {
@@ -57,10 +56,10 @@ export async function POST(request: NextRequest) {
 
     const videoData = await runwayRes.json();
 
-    // Runway returns: { assets: [{ url: "..." }] }
-    const videoUrl = videoUrl = videoData.assets?.[0]?.url || 'https://example.com/fallback.mp4';
+    // FIXED LINE — no more duplicate variable
+    const finalVideoUrl = videoData.assets?.[0]?.url || 'https://example.com/fallback.mp4';
 
-    return Response.json({ success: true, videoUrl });
+    return Response.json({ success: true, videoUrl: finalVideoUrl });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
