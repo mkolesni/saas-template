@@ -1,3 +1,4 @@
+// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
-    const description = scraped.data.content || scraped.data.description || 'Beautiful home';
+    const description = scraped.data.content || scraped.data.description || 'Stunning home';
     const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
     // 2. Voiceover with ElevenLabs
@@ -37,44 +38,27 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway Gen-4 Turbo
-    const runwayRes = await fetch('https://api.runwayml.com/v1/tasks', {
+    // 3. Runway — CORRECT ENDPOINT DECEMBER 2025
+    const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
         'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06',
       },
       body: JSON.stringify({
         model: 'gen-4-turbo',
-        input: {
-          promptText: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
-          ratio: '9:16',
-          duration: 60,
-          image_url: image,
-          audio_url: audioUrl,
-        },
+        prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
+        image_url: image,
+        audio_url: audioUrl,
+        duration: 60,
+        aspect_ratio: '9:16',
       }),
     });
 
-    const task = await runwayRes.json();
+    const videoData = await runwayRes.json();
 
-    // Poll for result (max 2 minutes)
-    let videoUrl = 'https://example.com/fallback.mp4';
-    if (task.id) {
-      const pollUrl = `https://api.runwayml.com/v1/tasks/${task.id}`;
-      for (let i = 0; i < 20; i++) {
-        await new Promise(r => setTimeout(r, 6000));
-        const poll = await fetch(pollUrl, {
-          headers: { 'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}` },
-        });
-        const result = await poll.json();
-        if (result.status === 'succeeded' && result.output?.[0]) {
-          videoUrl = result.output[0];
-          break;
-        }
-      }
-    }
+    // Runway returns: { assets: [{ url: "..." }] }
+    const videoUrl = videoUrl = videoData.assets?.[0]?.url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
