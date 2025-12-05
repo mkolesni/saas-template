@@ -20,18 +20,13 @@ export const metadata: Metadata = {
   description: "Turn any Zillow link into a viral listing Reel in 58 seconds",
 };
 
-// ← NO "use client"  
-// ← NO dynamic import  
-// ← NO ssr: false  
-// This works because ClerkProvider is safe in layout.tsx when the key is present
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={process.env.CLERK_PUBLISHABLE_KEY}>
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
           <Navbar />
