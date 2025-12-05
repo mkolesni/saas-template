@@ -20,9 +20,9 @@ export default function Home() {
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || 'Failed');
 
+      // This line gets the final video URL from your API
       setVideoUrl(data.videoUrl);
     } catch (err) {
       alert('Error: ' + (err as any).message);
@@ -34,7 +34,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-8 text-center">
       <h1 className="text-6xl font-bold text-amber-400 mb-8">
-        Listing → Viral Reel in 58 seconds
+        Every listing → Viral Reel in 58 seconds
       </h1>
 
       <form onSubmit={handleSubmit} className="w-full max-w-2xl space-y-8">
@@ -42,7 +42,7 @@ export default function Home() {
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://www.zillow.com/..."
+          placeholder="https://www.zillow.com/homedetails/..."
           className="w-full p-6 text-xl bg-gray-900 rounded-xl border border-gray-700"
           required
           disabled={loading}
@@ -58,15 +58,8 @@ export default function Home() {
 
       {videoUrl && (
         <div className="mt-16 max-w-3xl">
-          <p className="text-3xl mb-8 text-amber-400">Your video is ready!</p>
-          <video
-            controls
-            className="w-full rounded-2xl shadow-2xl"
-            src={videoUrl}
-          />
-          <p className="mt-6 text-gray-400">
-            Right-click → Save video as… or share directly
-          </p>
+          <p className="text-4xl mb-8 text-amber-400">Your video is ready!</p>
+          <video controls className="w-full rounded-2xl shadow-2xl" src={videoUrl} />
         </div>
       )}
     </main>
