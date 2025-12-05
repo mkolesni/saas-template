@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import Navbar from "@/components/Navbar";
@@ -20,10 +20,10 @@ export const metadata: Metadata = {
   description: "Turn any Zillow link into a viral listing Reel in 58 seconds",
 };
 
-// Dynamically import ClerkProvider so it NEVER runs during build/prerender
-const ClerkProvider = dynamic(() => import("@clerk/nextjs").then(mod => ({ default: mod.ClerkProvider })), {
-  ssr: false, // ← this disables it completely during static generation
-});
+// ← NO "use client"  
+// ← NO dynamic import  
+// ← NO ssr: false  
+// This works because ClerkProvider is safe in layout.tsx when the key is present
 
 export default function RootLayout({
   children,
@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider>
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
           <Navbar />
