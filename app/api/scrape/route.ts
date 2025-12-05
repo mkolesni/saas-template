@@ -1,4 +1,3 @@
-// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — CORRECT ENDPOINT DECEMBER 2025
+    // 3. Runway — CORRECT ENDPOINT + POLLING DECEMBER 2025
     const runwayRes = await fetch('https://api.runwayml.com/v1/tasks', {
       method: 'POST',
       headers: {
@@ -60,20 +59,20 @@ export async function POST(request: NextRequest) {
 
     const task = await runwayRes.json();
 
-    // Runway returns a task ID — poll for result
-    const pollUrl = `https://api.runwayml.com/v1/tasks/${task.id}`;
+    // Poll for result (simple version — max 2 minutes)
     let videoUrl = 'https://example.com/fallback.mp4';
-
-    // Simple poll loop (max 2 minutes)
-    for (let i = 0; i < 20; i++) {
-      await new Promise(r => setTimeout(r, 6000)); // wait 6s
-      const poll = await fetch(pollUrl, {
-        headers: { 'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}` },
-      });
-      const result = await poll.json();
-      if (result.status === 'succeeded' && result.output?.[0]) {
-        videoUrl = result.output[0];
-        break;
+    if (task.id) {
+      const pollUrl = `https://api.runwayml.com/v1/tasks/${task.id}`;
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 6000)); // wait 6 seconds
+        const poll = await fetch(pollUrl, {
+          headers: { 'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}` },
+        });
+        const result = await poll.json();
+        if (result.status === 'succeeded' && result.output?.[0]) {
+          videoUrl = result.output[0];
+          break;
+        }
       }
     }
 
