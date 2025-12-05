@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — CORRECT ENDPOINT DECEMBER 2025 
+    // 3. Runway — CORRECT ENDPOINT NOVEMBER 2025 CHANGE
     const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gen-4-turbo',
+        model: 'gen4_turbo',
         prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
         image_url: image,
         audio_url: audioUrl,
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
-    console.error('Full error:', error.message, error.stack); // Improved logging
+    console.error('Full error:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
