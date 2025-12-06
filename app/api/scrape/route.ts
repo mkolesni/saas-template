@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import ffmpeg from 'ffmpeg-static';
+import ffmpegStatic from 'ffmpeg-static';
 import { execSync } from 'child_process';
 
 export const dynamic = 'force-dynamic';
@@ -20,10 +20,7 @@ export async function POST(request: NextRequest) {
 
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
-    const price = scraped.data.metadata?.price || '$1,250,000';
-    const bedsBaths = scraped.data.metadata?.bedsBaths || '4 beds · 3 baths';
-    const sqft = scraped.data.metadata?.sqft || '2,800 sqft';
-    const description = scraped.data.content || scraped.data.description || 'Stunning home with premium features';
+    const description = scraped.data.content || scraped.data.description || 'Stunning home';
     const images = scraped.data.images || [];
 
     // 2. Voiceover with ElevenLabs
@@ -34,8 +31,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: `Welcome to ${title}. ${price}. ${bedsBaths}. ${sqft}. ${description.substring(0, 800)}. Contact the agent today!`,
-        voice_settings: { stability: 0.9, similarity_boost: 0.9, style: 0.3 },
+        text: `Welcome to ${title}. ${description.substring(0, 800)}. Contact the agent today!`,
       }),
     });
 
@@ -43,7 +39,7 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Generate 6 x 10-second clips with Runway (60 seconds total)
+    // 3. Generate 6 x 10-second clips with Runway
     const clipUrls = [];
     for (let i = 0; i < 6; i++) {
       const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
@@ -55,7 +51,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           model: 'veo3.1',
-          promptText: `Award-winning luxury real estate tour for ${title}. Use ONLY these real listing photos: ${images.slice(0, 6).join(', ')}. Flash elegant text overlays: "${price}" then "${bedsBaths}" then "${sqft}" in gold serif font. Smooth cinematic drone pans, golden hour lighting, marble interiors sparkling, ocean views, high-end furniture, professional film look. Professional voiceover. Make it look like a $5,000 listing video — nothing else.`,
+          promptText: `Luxury real estate tour for ${title}. Use ONLY these real listing photos: ${images.slice(0, 6).join(', ')}. Flash elegant text overlays: price, beds/baths, sqft. Smooth cinematic drone pans, golden hour lighting, professional voiceover.`,
           ratio: '1080:1920',
           duration: 10,
           audio: true,
@@ -66,14 +62,13 @@ export async function POST(request: NextRequest) {
       clipUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
     }
 
-    // 4. Stitch clips into 60-second video with FFmpeg
-    const ffmpegPath = ffmpeg();
+    // 4. Stitch into 60-second video with FFmpeg
+    const ffmpegPath = ffmpegStatic as string;
     const inputList = clipUrls.map((u, i) => `-i "${u}"`).join(' ');
     const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
     execSync(`${ffmpegPath} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac final.mp4`);
 
-    // Upload final.mp4 to Vercel Blob or S3 (placeholder)
-    const finalVideoUrl = 'https://your-vercel-blob/final.mp4'; // Replace with real upload
+    const finalVideoUrl = 'https://yourdomain.com/final.mp4'; // Replace with real upload (Vercel Blob or S3)
 
     return Response.json({ success: true, videoUrl: finalVideoUrl });
   } catch (error: any) {
