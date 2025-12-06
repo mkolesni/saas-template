@@ -37,16 +37,16 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway Gen-4 Turbo (correct endpoint December 2025)
-    console.log('Calling Runway...'); // Debug
-    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/generations', {
+    // 3. Runway Gen-4 Turbo — FIXED WITH X-Runway-Version HEADER
+    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
         'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-11-06',  // ← THIS FIXES THE ERROR
       },
       body: JSON.stringify({
-        model: 'gen4_turbo',
+        model: 'gen-4-turbo',
         prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
         image_url: image,
         audio_url: audioUrl,
@@ -56,9 +56,8 @@ export async function POST(request: NextRequest) {
     });
 
     const videoData = await runwayRes.json();
-    console.log('Runway response:', videoData); // Debug — check Vercel logs
 
-    const videoUrl = videoData.assets?.[0]?.url || videoData.video_url || 'https://example.com/fallback.mp4';
+    const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
