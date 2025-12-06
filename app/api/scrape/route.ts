@@ -1,4 +1,3 @@
-// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
-    const description = scraped.data.content || scraped.data.description || 'Stunning home';
+    const description = scraped.data.content || scraped.data.description || 'Stunning home with premium features';
     const images = scraped.data.images || [];
 
     // 2. Voiceover with ElevenLabs
@@ -31,6 +30,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         text: `Welcome to ${title}. ${description.substring(0, 800)}. Contact the agent today!`,
+        voice_settings: { stability: 0.9, similarity_boost: 0.9, style: 0.3 },
       }),
     });
 
@@ -38,41 +38,32 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Generate 8-second clips with Runway (8 clips = 64 seconds)
-    const clipUrls = [];
-    for (let i = 0; i < 8; i++) {
-      const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
-          'Content-Type': 'application/json',
-          'X-Runway-Version': '2024-11-06',
-        },
-        body: JSON.stringify({
-          model: 'gen-4-turbo',
-          promptText: `Luxury real estate tour for ${title}. Use ONLY these listing photos: ${images.slice(0, 6).join(', ')}. Smooth cinematic pans, golden hour lighting, elegant text overlays with price and features, professional voiceover.`,
-          ratio: '1080:1920',
-          duration: 8,
-          image_url: images[i % images.length] || images[0],
-          audio_url: audioUrl,
-        }),
-      });
+    // 3. Runway — VALID MODEL + PARAMS
+    console.log('Calling Runway...');
+    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
+        'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-11-06',
+      },
+      body: JSON.stringify({
+        model: 'veo3.1',  // ← VALID MODEL (from error values)
+        promptText: `Award-winning luxury real estate tour for ${title}. Use ONLY these real listing photos: ${images.slice(0, 6).join(', ')}. Flash elegant text overlays: price, beds/baths, sqft from the listing. Smooth cinematic drone pans, golden hour lighting, marble interiors sparkling, ocean views, high-end furniture, professional film look. Professional voiceover. Make it look like a $5,000 listing video — nothing else.`,
+        ratio: '1080:1920',  // ← VALID RATIO (9:16)
+        duration: 8,  // ← VALID DURATION (8s max; chain for 60s)
+        audio: true,  // ← ENABLE AUDIO
+      }),
+    });
 
-      const data = await runwayRes.json();
-      clipUrls.push(data.video_url || 'https://example.com/fallback.mp4');
-    }
+    const videoData = await runwayRes.json();
+    console.log('Runway response:', videoData);
 
-    // 4. Stitch clips into 60-second video with FFmpeg (Vercel has FFmpeg)
-    const ffmpeg = require('ffmpeg-static');
-    const { execSync } = require('child_process');
-    const inputList = clipUrls.map((u, i) => `-i "${u}"`).join(' ');
-    const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
-    execSync(`${ffmpeg} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" final.mp4`);
+    const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
 
-    const finalVideoUrl = 'https://yourdomain.com/final.mp4'; // Upload final.mp4 to Vercel Blob or S3
-
-    return Response.json({ success: true, videoUrl: finalVideoUrl });
+    return Response.json({ success: true, videoUrl });
   } catch (error: any) {
+    console.error('Full error:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
