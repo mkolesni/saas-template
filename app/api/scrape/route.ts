@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const description = scraped.data.content || scraped.data.description || 'Stunning home';
     const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
-    // 2. Voiceover with ElevenLabs
+    // 2. Voiceover with ElevenLabs (MUST come before Runway)
     const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
       method: 'POST',
       headers: {
