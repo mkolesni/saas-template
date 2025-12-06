@@ -18,10 +18,10 @@ export async function POST(request: NextRequest) {
 
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
-    const description = scraped.data.content?.substring(0, 600) || 'Stunning home with premium features';
-    const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
+    const description = scraped.data.content || scraped.data.description || 'Stunning home';
+    const images = scraped.data.images || [];
 
-    // 2. Voiceover — ultra-luxury tone
+    // 2. Voiceover with ElevenLabs
     const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
       method: 'POST',
       headers: {
@@ -29,8 +29,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: `Welcome to ${title}. ${description} This exquisite residence offers unmatched elegance. Schedule your private tour today.`,
-        voice_settings: { stability: 0.85, similarity_boost: 0.9, style: 0.3 },
+        text: `Welcome to ${title}. ${description.substring(0, 800)}. Contact the agent today!`,
       }),
     });
 
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — LUXURY PROMPT (this is the magic)
+    // 3. Runway — FORCED TO USE LISTING PHOTOS (no fallback)
     const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
       method: 'POST',
       headers: {
@@ -47,8 +46,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: 'gen4_turbo',
-        prompt: `Ultra-luxury real estate cinematic tour for ${title}. Golden hour drone shots, smooth gliding camera movements through marble interiors, crystal chandeliers sparkling, ocean views, high-end furniture, professional film look, subtle elegant text overlays with price and features, premium color grading, cinematic aspect ratio.`,
-        image_url: image,
+        prompt: `Luxury real estate tour using ONLY these photos from the actual listing. Smooth cinematic pans, golden hour lighting, elegant text overlays with price and features, professional voiceover. Do not invent any images — use only the provided photos.`,
+        image_url: images.slice(0, 8), // Send first 8 real listing photos
         audio_url: audioUrl,
         duration: 60,
         aspect_ratio: '9:16',
