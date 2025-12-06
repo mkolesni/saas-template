@@ -76,11 +76,12 @@ ${JSON.stringify(data, null, 2)}
         </button>
       </div>
 
-      {/* ↓↓↓ YOUR MONEY CODE — Lemon Squeezy checkout button ↓↓↓ */}
+      {/* ↓↓↓ LEMON SQUEEZY MONEY BUTTON ↓↓↓ */}
       <div className="mt-20 text-center">
         <a
-          href="https://YOUR-LEMON-SQUEEZY-CHECKOUT-LINK-HERE"  {/* ← paste your link */}
+          href="https://YOUR-LEMON-SQUEEZY-LINK-HERE"   {/* ← paste your real link */}
           target="_blank"
+          rel="noopener"
           className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-black font-black text-4xl px-20 py-10 rounded-3xl shadow-2xl transform hover:scale-105 transition-all"
         >
           Claim Lifetime Access – First 500 Only (pay what you want, min $599)
@@ -88,11 +89,7 @@ ${JSON.stringify(data, null, 2)}
         <p className="mt-6 text-3xl text-gray-300">
           Spots claimed: <span className="text-amber-400 font-bold">0 / 500</span>
         </p>
-        <p className="text-xl text-gray-500 mt-4">
-          After 500 sold → price becomes $179/month forever
-        </p>
       </div>
-      {/* ↑↑↑ END OF MONEY CODE ↑↑↑ */}
     </main>
   );
 }
