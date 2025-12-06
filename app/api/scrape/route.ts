@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
     const description = scraped.data.content || scraped.data.description || 'Stunning home';
-    ';
     const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
     // 2. Voiceover with ElevenLabs
@@ -57,8 +56,7 @@ export async function POST(request: NextRequest) {
 
     const videoData = await runwayRes.json();
 
-    // FINAL CORRECT WAY TO GET THE VIDEO URL
-    const videoUrl = videoData.output?.video_url || videoData.assets?.[0]?.url || 'https://example.com/fallback.mp4';
+    const videoUrl = videoData.assets?.[0]?.url || videoData.output?.video_url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
