@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
 
-    // 1. Scrape with Firecrawl
+    // 1. Scrape with Firecrawl (this works, credits burning)
     const scrapeRes = await fetch('https://api.firecrawl.dev/v0/scrape', {
       method: 'POST',
       headers: {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const description = scraped.data.content || scraped.data.description || 'Stunning home';
     const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
-    // 2. Voiceover with ElevenLabs
+    // 2. Voiceover with ElevenLabs (this works, credits burning)
     const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
       method: 'POST',
       headers: {
@@ -37,13 +37,13 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway Gen-4 Turbo — FIXED WITH X-Runway-Version HEADER
+    // 3. Runway Gen-4 Turbo (FIXED ENDPOINT)
+    console.log('Calling Runway...'); // Debug log
     const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
         'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06',  // ← THIS FIXES THE ERROR
       },
       body: JSON.stringify({
         model: 'gen-4-turbo',
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     });
 
     const videoData = await runwayRes.json();
+    console.log('Runway response:', videoData); // Debug — check Vercel logs
 
     const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
 
