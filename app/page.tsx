@@ -76,10 +76,10 @@ ${JSON.stringify(data, null, 2)}
         </button>
       </div>
 
-      {/* ↓↓↓ LEMON SQUEEZY MONEY BUTTON ↓↓↓ */}
+      {/* LEMON SQUEEZY CHECKOUT BUTTON */}
       <div className="mt-20 text-center">
         <a
-          href="https://YOUR-LEMON-SQUEEZY-LINK-HERE"   {/* ← paste your real link */}
+          href="https://YOUR-LEMON-SQUEEZY-CHECKOUT-LINK-HERE"   {/* ← paste your real link */}
           target="_blank"
           rel="noopener"
           className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-black font-black text-4xl px-20 py-10 rounded-3xl shadow-2xl transform hover:scale-105 transition-all"
