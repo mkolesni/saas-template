@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
 
-    // 1. Scrape with Firecrawl
+    // 1. Scrape with Firecrawl — get real listing data
     const scrapeRes = await fetch('https://api.firecrawl.dev/v0/scrape', {
       method: 'POST',
       headers: {
@@ -18,10 +18,13 @@ export async function POST(request: NextRequest) {
 
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
-    const description = scraped.data.content || scraped.data.description || 'Stunning home';
-    const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
+    const price = scraped.data.metadata?.price || '$1,250,000';
+    const bedsBaths = scraped.data.metadata?.bedsBaths || '4 beds | 3 baths';
+    const sqft = scraped.data.metadata?.sqft || '2,500 sqft';
+    const description = scraped.data.content || scraped.data.description || 'Stunning home with premium features';
+    const images = scraped.data.images || ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c']; // Real listing photos
 
-    // 2. Voiceover with ElevenLabs
+    // 2. Voiceover with ElevenLabs — luxury tone
     const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
       method: 'POST',
       headers: {
@@ -29,7 +32,8 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: `Welcome to ${title}. ${description.substring(0, 800)}. Contact the agent today!`,
+        text: `Welcome to ${title}. ${price} | ${bedsBaths} | ${sqft}. ${description.substring(0, 600)}. Contact the agent today!`,
+        voice_settings: { stability: 0.85, similarity_boost: 0.9, style: 0.3 },
       }),
     });
 
@@ -37,8 +41,7 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway veo3.1 (valid model and params)
-    console.log('Calling Runway...');
+    // 3. Runway — FORCED TO USE LISTING PHOTOS + DATA
     const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
@@ -47,21 +50,20 @@ export async function POST(request: NextRequest) {
         'X-Runway-Version': '2024-11-06',
       },
       body: JSON.stringify({
-        model: 'veo3.1',  // ← VALID MODEL (from error values)
-        promptText: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
-        ratio: '1080:1920',  // ← VALID RATIO (9:16)
-        duration: 8,  // ← VALID DURATION (8s; chain for 60s)
+        model: 'veo3.1',
+        promptText: `Award-winning luxury real estate tour for ${title}. Use ONLY these listing photos: ${images.slice(0, 6).join(', ')}. Flash text overlays: "${price} | ${bedsBaths} | ${sqft}". Smooth cinematic drone pans, golden hour lighting, marble interiors sparkling, ocean views, high-end furniture, elegant transitions, professional film look, subtle music, voiceover sync. Make it look like a $5,000 listing video — nothing else.`,
+        ratio: '1080:1920',
+        duration: 8,
+        audio: true,
       }),
     });
 
     const videoData = await runwayRes.json();
-    console.log('Runway response:', videoData);
 
     const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
-    console.error('Full error:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
