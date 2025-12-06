@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
     const description = scraped.data.content || scraped.data.description || 'Stunning home';
+    ';
     const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
     // 2. Voiceover with ElevenLabs
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gen-4-turbo',  // ← FINAL CORRECT NAME
+        model: 'gen4_turbo',
         prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
         image_url: image,
         audio_url: audioUrl,
@@ -56,7 +57,8 @@ export async function POST(request: NextRequest) {
 
     const videoData = await runwayRes.json();
 
-    const videoUrl = videoData.assets?.[0]?.url || 'https://example.com/fallback.mp4';
+    // FINAL CORRECT WAY TO GET THE VIDEO URL
+    const videoUrl = videoData.output?.video_url || videoData.assets?.[0]?.url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
