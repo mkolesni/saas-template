@@ -6,45 +6,49 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleOpenVideo = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
 
     setLoading(true);
 
-    // Open new window with loading message
     const win = window.open('', '_blank');
     win?.document.write(`
       <html>
-        <head><title>Generating your luxury video...</title></head>
+        <head><title>Generating...</title></head>
         <body style="background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:60px;">
-          <h1>Creating your luxury listing Reel...</h1>
-          <p>Please wait 45–90 seconds — do not close this window.</p>
+          <h1>Creating your luxury Reel...</h1>
+          <p>Please wait 45–90 seconds — do not close</p>
           <div style="margin:40px auto;width:60px;height:60px;border:6px solid #333;border-top:6px solid #f59e0b;border-radius:50%;animation:s 1s linear infinite;"></div>
           <style>@keyframes s{to{transform:rotate(360deg)}}</style>
         </body>
       </html>
     `);
 
-    // Call your API
-    fetch('/api/scrape', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url.trim() }),
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.videoUrl && data.videoUrl.includes('runwayml.com')) {
-          win?.location.replace(data.videoUrl);
-        } else {
-          win?.document.write('<h2 style="color:#f59e0b">Video ready! Check your email shortly.</h2>');
-        }
-      })
-      .catch(err => {
-        win?.document.write('<h2 style="color:red">Error — please try again</h2>');
-        console.error(err);
-      })
-      .finally(() => setLoading(false));
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+
+      const data = await res.json();
+
+      win?.document.open();
+      win?.document.write(`
+        <pre style="white-space: pre-wrap; word-wrap: break-word; padding: 20px; background: #111; color: #0f0;">
+${JSON.stringify(data, null, 2)}
+        </pre>
+        <video controls style="width:90%; max-width:800px; margin-top:20px;" src="${data.videoUrl || ''}"></video>
+      `);
+      win?.document.close();
+    } catch (err: any) {
+      win?.document.open();
+      win?.document.write('<h2 style="color:red">JavaScript Error: ' + err.message + '</h2>');
+      win?.document.close();
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -53,24 +57,24 @@ export default function Home() {
         Every listing → Viral Reel in 58 seconds
       </h1>
 
-      <form onSubmit={handleSubmit} className="w-full max-w-2xl space-y-8">
+      <div className="w-full max-w-2xl space-y-8">
         <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://www.zillow.com/..."
+          placeholder="Paste Zillow link..."
           className="w-full p-6 text-xl bg-gray-900 rounded-xl border border-gray-700"
           required
           disabled={loading}
         />
         <button
-          type="submit"
+          onClick={handleOpenVideo}
           disabled={loading}
-          className="w-full bg-amber-400 hover:bg-amber-500 text-black text-3xl font-bold py-8 rounded-xl disabled:opacity-60"
+          className="w-full bg-amber-400 hover:bg-amber-500 text-black text-3xl font-bold py-8 rounded-xl"
         >
-          {loading ? 'Generating…' : 'Generate Video'}
+          {loading ? 'Generating...' : 'Generate Video in New Window'}
         </button>
-      </form>
+      </div>
     </main>
   );
 }
