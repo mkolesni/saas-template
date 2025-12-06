@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     let videoUrl = 'https://example.com/fallback.mp4';
     if (task.id) {
       const pollUrl = `https://api.runwayml.com/v1/tasks/${task.id}`;
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 30; i++) {
         await new Promise(r => setTimeout(r, 6000));
         const poll = await fetch(pollUrl, {
           headers: { 'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}` },
