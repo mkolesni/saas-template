@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import ffmpegStatic from 'ffmpeg-static';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { execSync } from 'child_process';
 
 export const dynamic = 'force-dynamic';
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Stitch into 60-second video with FFmpeg
-    const ffmpegPath = ffmpegStatic as string;
+    const ffmpegPath = ffmpegInstaller.path;  // ← FIXED PATH
     const inputList = clipUrls.map((u, i) => `-i "${u}"`).join(' ');
     const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
     execSync(`${ffmpegPath} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac final.mp4`);
