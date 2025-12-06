@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — CURRENT ENDPOINT DECEMBER 2025
-    console.log('Calling Runway...'); // Debug log
+    // 3. Runway veo3.1 (valid model and params)
+    console.log('Calling Runway...');
     const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
@@ -46,15 +46,16 @@ export async function POST(request: NextRequest) {
         'X-Runway-Version': '2024-11-06',
       },
       body: JSON.stringify({
-        model: 'veo3.1',  // ← CURRENT MODEL
+        model: 'veo3.1',  // ← VALID MODEL
         promptText: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
-        ratio: '9:16',
-        duration: 60,
+        ratio: '1080:1920',  // ← VALID ASPECT RATIO (9:16)
+        audio: true,  // ← ENABLE AUDIO
+        duration: 8,  // ← VALID DURATION (8 seconds; chain for longer)
       }),
     });
 
     const videoData = await runwayRes.json();
-    console.log('Runway response:', videoData); // Debug
+    console.log('Runway response:', videoData);
 
     const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
 
