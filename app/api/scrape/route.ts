@@ -1,4 +1,3 @@
-// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -38,8 +37,9 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway Gen-4 Turbo — FINAL DECEMBER 2025 ENDPOINT
-    const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
+    // 3. Runway Gen-4 Turbo (correct endpoint December 2025)
+    console.log('Calling Runway...'); // Debug
+    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/generations', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
@@ -56,11 +56,13 @@ export async function POST(request: NextRequest) {
     });
 
     const videoData = await runwayRes.json();
+    console.log('Runway response:', videoData); // Debug — check Vercel logs
 
-    const videoUrl = videoData.assets?.[0]?.url || 'https://example.com/fallback.mp4';
+    const videoUrl = videoData.assets?.[0]?.url || videoData.video_url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
+    console.error('Full error:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
