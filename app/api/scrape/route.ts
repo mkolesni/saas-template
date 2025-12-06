@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import ffmpeg from 'ffmpeg-static';
+import { execSync } from 'child_process';
 
 export const dynamic = 'force-dynamic';
 
@@ -6,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
 
-    // 1. Scrape with Firecrawl — get REAL listing data
+    // 1. Scrape with Firecrawl
     const scrapeRes = await fetch('https://api.firecrawl.dev/v0/scrape', {
       method: 'POST',
       headers: {
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
     const description = scraped.data.content || scraped.data.description || 'Stunning home with premium features';
     const images = scraped.data.images || [];
 
-    // 2. Voiceover with ElevenLabs — luxury tone
+    // 2. Voiceover with ElevenLabs
     const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
       method: 'POST',
       headers: {
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: `Welcome to ${title}. ${price}. ${bedsBaths}. ${sqft}. ${description.substring(0, 600)}. Contact the agent today for a private showing.`,
+        text: `Welcome to ${title}. ${price}. ${bedsBaths}. ${sqft}. ${description.substring(0, 800)}. Contact the agent today!`,
         voice_settings: { stability: 0.9, similarity_boost: 0.9, style: 0.3 },
       }),
     });
@@ -41,28 +43,39 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — FORCED TO USE LISTING PHOTOS + DATA OVERLAYS
-    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
-        'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06',
-      },
-      body: JSON.stringify({
-        model: 'veo3.1',
-        promptText: `Award-winning luxury real estate tour for ${title}. Use ONLY these real listing photos: ${images.slice(0, 6).join(', ')}. Flash elegant text overlays: "${price}" then "${bedsBaths}" then "${sqft}" in gold serif font. Smooth cinematic drone pans, golden hour lighting, marble interiors sparkling, ocean views, high-end furniture, professional film look. Professional voiceover. Make it look like a $5,000 listing video — nothing else.`,
-        ratio: '1080:1920',
-        duration: 8,
-        audio: true,
-      }),
-    });
+    // 3. Generate 6 x 10-second clips with Runway (60 seconds total)
+    const clipUrls = [];
+    for (let i = 0; i < 6; i++) {
+      const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
+          'Content-Type': 'application/json',
+          'X-Runway-Version': '2024-11-06',
+        },
+        body: JSON.stringify({
+          model: 'veo3.1',
+          promptText: `Award-winning luxury real estate tour for ${title}. Use ONLY these real listing photos: ${images.slice(0, 6).join(', ')}. Flash elegant text overlays: "${price}" then "${bedsBaths}" then "${sqft}" in gold serif font. Smooth cinematic drone pans, golden hour lighting, marble interiors sparkling, ocean views, high-end furniture, professional film look. Professional voiceover. Make it look like a $5,000 listing video — nothing else.`,
+          ratio: '1080:1920',
+          duration: 10,
+          audio: true,
+        }),
+      });
 
-    const videoData = await runwayRes.json();
+      const videoData = await runwayRes.json();
+      clipUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
+    }
 
-    const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
+    // 4. Stitch clips into 60-second video with FFmpeg
+    const ffmpegPath = ffmpeg();
+    const inputList = clipUrls.map((u, i) => `-i "${u}"`).join(' ');
+    const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
+    execSync(`${ffmpegPath} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac final.mp4`);
 
-    return Response.json({ success: true, videoUrl });
+    // Upload final.mp4 to Vercel Blob or S3 (placeholder)
+    const finalVideoUrl = 'https://your-vercel-blob/final.mp4'; // Replace with real upload
+
+    return Response.json({ success: true, videoUrl: finalVideoUrl });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
