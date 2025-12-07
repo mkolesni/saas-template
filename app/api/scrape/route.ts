@@ -1,7 +1,5 @@
-// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
-import ffmpeg from '@ffmpeg-installer/ffmpeg';
-import { execSync } from 'child_process';
+import ffmpeg from 'ffmpeg-static';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +19,10 @@ export async function POST(request: NextRequest) {
 
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
-    const description = scraped.data.content || scraped.data.description || 'Stunning home';
+    const price = scraped.data.metadata?.price || '$1,250,000';
+    const bedsBaths = scraped.data.metadata?.bedsBaths || '4 beds · 3 baths';
+    const sqft = scraped.data.metadata?.sqft || '2,800 sqft';
+    const description = scraped.data.content || scraped.data.description || 'Stunning home with premium features';
     const images = scraped.data.images || [];
 
     // 2. Voiceover with ElevenLabs
@@ -32,7 +33,8 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: `Welcome to ${title}. ${description.substring(0, 800)}. Contact the agent today!`,
+        text: `Welcome to ${title}. ${price}. ${bedsBaths}. ${sqft}. ${description.substring(0, 600)}. Contact the agent today!`,
+        voice_settings: { stability: 0.9, similarity_boost: 0.9 },
       }),
     });
 
@@ -54,25 +56,24 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           model: 'veo3.1',
-          promptText: `Luxury real estate tour for ${title}. Use ONLY this listing photo. Smooth cinematic pan, golden hour lighting, elegant text overlays, professional voiceover.`,
+          promptText: `Award-winning luxury real estate tour. Use ONLY this listing photo. Flash elegant text overlays: "${price}" then "${bedsBaths}" then "${sqft}". Smooth cinematic pans, golden hour lighting, marble interiors, professional film look. Professional voiceover.`,
           ratio: '1080:1920',
           duration: 10,
-          image_url: image,
           audio: true,
         }),
       });
 
-      const data = await runwayRes.json();
-      clipUrls.push(data.video_url || 'https://example.com/fallback.mp4');
+      const videoData = await runwayRes.json();
+      clipUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
     }
 
     // 4. Stitch into 60-second video with FFmpeg
-    const ffmpegPath = ffmpeg.path;
+    const ffmpegPath = ffmpeg;
     const inputList = clipUrls.map((u, i) => `-i "${u}"`).join(' ');
     const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
     execSync(`${ffmpegPath} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac final.mp4`);
 
-    const finalVideoUrl = 'https://yourdomain.com/final.mp4'; // Replace with real upload (Vercel Blob or S3)
+    const finalVideoUrl = 'https://yourdomain.com/final.mp4'; // Replace with real upload
 
     return Response.json({ success: true, videoUrl: finalVideoUrl });
   } catch (error: any) {
