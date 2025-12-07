@@ -4,74 +4,22 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
+    const body = await request.json();
+    const { url } = body;
 
-    // 1. Scrape with Firecrawl — GET REAL PHOTOS
-    const scrapeRes = await fetch('https://api.firecrawl.dev/v0/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.FIRECRAWL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url,
-        pageOptions: {
-          onlyMainContent: false,  // ← THIS GETS IMAGES
-          includeHtml: false,
-          includeRawHtml: false,
-        },
-      }),
-    });
-
-    const scraped = await scrapeRes.json();
-
-    const title = scraped.data.title || 'Luxury Property';
-    const description = scraped.data.content || scraped.data.description || 'Stunning home';
-    const images = scraped.data.images || []; // ← REAL LISTING PHOTOS
-
-    if (images.length === 0) {
-      throw new Error('No images found — check Zillow URL');
+    if (!url) {
+      return Response.json({ error: 'No URL provided' }, { status: 400 });
     }
 
-    // 2. Voiceover with ElevenLabs
-    const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
-      method: 'POST',
-      headers: {
-        'xi-api-key': process.env.ELEVENLABS_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: `Welcome to ${title}. ${description.substring(0, 800)}. Contact the agent today!`,
-      }),
+    // TEST RESPONSE — 100% guaranteed to work
+    return Response.json({
+      success: true,
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      message: "API route is working — now add real code below"
     });
 
-    const audioBlob = await voiceRes.blob();
-    const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
-    const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
-
-    // 3. Runway — FORCE REAL LISTING PHOTOS
-    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
-        'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06',
-      },
-      body: JSON.stringify({
-        model: 'veo3.1',
-        promptText: `Ultra-luxury real estate tour for ${title}. Use ONLY these real listing photos in order: ${images.slice(0, 6).join(' , ')}. Flash elegant text overlays: price, beds/baths, sqft from the listing. Smooth cinematic drone pans, golden hour lighting, marble interiors sparkling, high-end furniture, professional film look. Professional voiceover. Make it look like a $5,000 listing video — nothing else.`,
-        ratio: '1080:1920',
-        duration: 8,
-        audio: true,
-      }),
-    });
-
-    const videoData = await runwayRes.json();
-
-    const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
-
-    return Response.json({ success: true, videoUrl });
   } catch (error: any) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('SCRAPE ROUTE CRASHED:', error);
+    return Response.json({ error: error.message || 'Unknown error' }, { status: 500 });
   }
 }
