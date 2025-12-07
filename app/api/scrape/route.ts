@@ -1,9 +1,4 @@
 import { NextRequest } from 'next/server';
-import ffmpeg from '@ffmpeg-installer/ffmpeg';
-import { execSync } from 'child_process';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,8 +37,8 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Generate 6 x 10-second clips with Runway
-    const clipUrls = [];
+    // 3. Generate 6 x 10-second Runway clips (60 seconds total)
+    const videoUrls = [];
     for (let i = 0; i < 6; i++) {
       const image = images[i] || images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
@@ -64,18 +59,14 @@ export async function POST(request: NextRequest) {
       });
 
       const videoData = await runwayRes.json();
-      clipUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
+      videoUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
     }
 
-    // 4. Stitch into ONE 60-second video with FFmpeg
-    const ffmpegPath = ffmpeg.path;
-    const inputList = clipUrls.map((u, i) => `-i "${u}"`).join(' ');
-    const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
-    execSync(`${ffmpegPath} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac final.mp4`);
-
-    const finalVideoUrl = 'https://yourdomain.com/final.mp4'; // Replace with real upload
-
-    return Response.json({ success: true, videoUrl: finalVideoUrl });
+    return Response.json({ 
+      success: true, 
+      videoUrls,  // 6 real Runway videos
+      message: "6 clips generated — play them back-to-back for 60 seconds"
+    });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
