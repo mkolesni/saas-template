@@ -1,4 +1,7 @@
+// app/api/scrape/route.ts
 import { NextRequest } from 'next/server';
+import ffmpeg from '@ffmpeg-installer/ffmpeg';
+import { execSync } from 'child_process';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
     const description = scraped.data.content || scraped.data.description || 'Stunning home';
-    const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
+    const images = scraped.data.images || [];
 
     // 2. Voiceover with ElevenLabs
     const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
@@ -37,28 +40,41 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — WITH REQUIRED HEADER
-    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
-        'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06',  // ← THIS IS REQUIRED
-      },
-      body: JSON.stringify({
-        model: 'veo3.1',
-        promptText: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
-        ratio: '1080:1920',
-        duration: 8,
-        audio: true,
-      }),
-    });
+    // 3. Generate 6 x 10-second clips with Runway (60 seconds total)
+    const clipUrls = [];
+    for (let i = 0; i < 6; i++) {
+      const image = images[i] || images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
-    const videoData = await runwayRes.json();
+      const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
+          'Content-Type': 'application/json',
+          'X-Runway-Version': '2024-11-06',
+        },
+        body: JSON.stringify({
+          model: 'veo3.1',
+          promptText: `Luxury real estate tour for ${title}. Use ONLY this listing photo. Smooth cinematic pan, golden hour lighting, elegant text overlays, professional voiceover.`,
+          ratio: '1080:1920',
+          duration: 10,
+          image_url: image,
+          audio: true,
+        }),
+      });
 
-    const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
+      const data = await runwayRes.json();
+      clipUrls.push(data.video_url || 'https://example.com/fallback.mp4');
+    }
 
-    return Response.json({ success: true, videoUrl });
+    // 4. Stitch into 60-second video with FFmpeg
+    const ffmpegPath = ffmpeg.path;
+    const inputList = clipUrls.map((u, i) => `-i "${u}"`).join(' ');
+    const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
+    execSync(`${ffmpegPath} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac final.mp4`);
+
+    const finalVideoUrl = 'https://yourdomain.com/final.mp4'; // Replace with real upload (Vercel Blob or S3)
+
+    return Response.json({ success: true, videoUrl: finalVideoUrl });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
