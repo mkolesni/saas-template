@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
     const scraped = await scrapeRes.json();
     const title = scraped.data.title || 'Luxury Property';
     const description = scraped.data.content || scraped.data.description || 'Stunning home';
-    const image = scraped.data.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
+    const images = scraped.data.images || [];
+    const image = images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
     // 2. Voiceover with ElevenLabs
     const voiceRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
@@ -37,13 +38,13 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — WITH X-Runway-Version HEADER (NEVER REMOVED)
+    // 3. Runway — WITH X-Runway-Version + real listing photos
     const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
         'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06',  // ← REQUIRED — NEVER REMOVED
+        'X-Runway-Version': '2024-11-06',
       },
       body: JSON.stringify({
         model: 'veo3.1',
