@@ -37,26 +37,26 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Runway — FINAL DECEMBER 2025 ENDPOINT + MODEL
-    const runwayRes = await fetch('https://api.runwayml.com/v1/generations', {
+    // 3. Runway — WITH X-Runway-Version HEADER (NEVER REMOVED)
+    const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
         'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-11-06',  // ← REQUIRED — NEVER REMOVED
       },
       body: JSON.stringify({
-        model: 'gen4_turbo',
-        prompt: `Luxury real estate tour for ${title}. Smooth cinematic pans, golden hour lighting, elegant text overlays, professional voiceover.`,
-        image_url: image,
-        audio_url: audioUrl,
-        duration: 60,
-        aspect_ratio: '9:16',
+        model: 'veo3.1',
+        promptText: `Award-winning luxury real estate tour for ${title}. Use ONLY these real listing photos: ${images.slice(0, 6).join(', ')}. Flash elegant text overlays: price, beds/baths, sqft from the listing. Smooth cinematic drone pans, golden hour lighting, marble interiors sparkling, ocean views, high-end furniture, professional film look. Professional voiceover. Make it look like a $5,000 listing video — nothing else.`,
+        ratio: '1080:1920',
+        duration: 8,
+        audio: true,
       }),
     });
 
     const videoData = await runwayRes.json();
 
-    const videoUrl = videoData.assets?.[0]?.url || videoData.output?.video_url || 'https://example.com/fallback.mp4';
+    const videoUrl = videoData.video_url || 'https://example.com/fallback.mp4';
 
     return Response.json({ success: true, videoUrl });
   } catch (error: any) {
