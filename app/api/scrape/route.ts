@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import ffmpeg from '@ffmpeg-installer/ffmpeg';
+import { execSync } from 'child_process';
 
 export const dynamic = 'force-dynamic';
 
@@ -6,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
 
-    // 1. Scrape with Firecrawl — get REAL listing data
+    // 1. Scrape with Firecrawl
     const scrapeRes = await fetch('https://api.firecrawl.dev/v0/scrape', {
       method: 'POST',
       headers: {
@@ -14,6 +16,8 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ url }),
+    });
+
     });
 
     const scraped = await scrapeRes.json();
@@ -37,10 +41,10 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Generate 6 x 10-second clips with Runway — FORCED to use real listing photos
-    const videoUrls = [];
+    // 3. Generate 6 x 10-second clips with Runway
+    const clipUrls = [];
     for (let i = 0; i < 6; i++) {
-      const image = images[i] || images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c'; // ← REAL LISTING PHOTO
+      const image = images[i] || images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
       const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
         method: 'POST',
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           model: 'veo3.1',
-          promptText: `Luxury real estate tour for ${title}. Use ONLY this real listing photo. Smooth cinematic pans, golden hour lighting, elegant text overlays with price and features, professional voiceover. Make it look like a $5,000 listing video.`,
+          promptText: `Luxury real estate tour for ${title}. Use ONLY this real listing photo. Smooth cinematic pans, golden hour lighting, elegant text overlays with price and features, professional voiceover.`,
           ratio: '1080:1920',
           duration: 10,
           audio: true,
@@ -59,10 +63,19 @@ export async function POST(request: NextRequest) {
       });
 
       const videoData = await runwayRes.json();
-      videoUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
+      clipUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
     }
 
-    return Response.json({ success: true, videoUrls });
+    // 4. Stitch into ONE 60-second video with FFmpeg
+    const ffmpegPath = ffmpeg.path;
+    const inputList = clipUrls.map((u, i) => `-i "${u}"`).join(' ');
+    const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
+    execSync(`${ffmpegPath} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac final.mp4`);
+
+    // Upload final.mp4 to Vercel Blob or S3 (placeholder)
+    const finalVideoUrl = 'https://yourdomain.com/final.mp4';
+
+    return Response.json({ success: true, videoUrl: finalVideoUrl });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
