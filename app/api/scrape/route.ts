@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
     const audioBase64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
     const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
 
-    // 3. Generate 6 x 10-second Runway clips (60 seconds total)
-    const videoUrls = [];
-    for (let i = 0; i < 6; i++) {
-      const image = images[i] || images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
+    // 3. Generate 8 x 8-second clips with Runway (64 seconds total)
+    const clipUrls = [];
+    for (let i = 0; i < 8; i++) {
+      const image = images[i % images.length] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c';
 
       const runwayRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
         method: 'POST',
@@ -51,23 +51,25 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           model: 'veo3.1',
-          promptText: `Luxury real estate tour for ${title}. Use ONLY this real listing photo. Smooth cinematic pans, golden hour lighting, elegant text overlays with price and features, professional voiceover.`,
+          promptText: `Award-winning luxury real estate tour for ${title}. Use ONLY this real listing photo. Smooth cinematic pans, golden hour lighting, elegant text overlays with price and features, professional voiceover.`,
           ratio: '1080:1920',
-          duration: 10,
+          duration: 8,  // ← VALID DURATION (from error)
           audio: true,
         }),
       });
 
       const videoData = await runwayRes.json();
-      videoUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
+      clipUrls.push(videoData.video_url || 'https://example.com/fallback.mp4');
     }
 
+    // 4. Return 8 clips (play back-to-back for 64 seconds)
     return Response.json({ 
       success: true, 
-      videoUrls,  // 6 real Runway videos
-      message: "6 clips generated — play them back-to-back for 60 seconds"
+      videoUrls: clipUrls,
+      message: "8 luxury clips generated — play back-to-back for 64 seconds"
     });
   } catch (error: any) {
+    console.error('Full error:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
