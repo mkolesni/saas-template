@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server';
 import ffmpeg from '@ffmpeg-installer/ffmpeg';
 import { execSync } from 'child_process';
+import path from 'path';
+import os from 'os';
+import fs from 'fs';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +19,6 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ url }),
-    });
-
     });
 
     const scraped = await scrapeRes.json();
@@ -72,8 +73,7 @@ export async function POST(request: NextRequest) {
     const filter = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join('') + `concat=n=${clipUrls.length}:v=1:a=1[outv][outa]`;
     execSync(`${ffmpegPath} ${inputList} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac final.mp4`);
 
-    // Upload final.mp4 to Vercel Blob or S3 (placeholder)
-    const finalVideoUrl = 'https://yourdomain.com/final.mp4';
+    const finalVideoUrl = 'https://yourdomain.com/final.mp4'; // Replace with real upload
 
     return Response.json({ success: true, videoUrl: finalVideoUrl });
   } catch (error: any) {
